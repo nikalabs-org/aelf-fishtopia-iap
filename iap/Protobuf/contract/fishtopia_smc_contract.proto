@@ -1,0 +1,105 @@
+syntax = "proto3";
+
+import "aelf/core.proto";
+import "aelf/options.proto";
+import "google/protobuf/empty.proto";
+import "google/protobuf/wrappers.proto";
+import "Protobuf/reference/acs12.proto";
+// The namespace of this class
+option csharp_namespace = "AElf.Contracts.FishtopiaIAP";
+
+service FishtopiaIAP {
+  // The name of the state class the smart contract is going to use to access blockchain state
+  option (aelf.csharp_state) = "AElf.Contracts.FishtopiaIAP.FishtopiaIAPState";
+  option (aelf.base) = "Protobuf/reference/acs12.proto";
+  
+  rpc Initialize(google.protobuf.Empty) returns (google.protobuf.Empty) {
+  }
+
+  rpc SetReceiverWallet (AddressInput) returns (google.protobuf.Empty) {
+  }
+
+  rpc PurchaseItems (PurchaseItemsInput) returns (google.protobuf.Empty) {
+  }
+
+  rpc AddItems (AddItemsInput) returns (google.protobuf.Empty) {
+  }
+
+  rpc RemoveItems(RemoveItemsInput) returns (google.protobuf.Empty) {
+  }
+  
+  rpc TransferOwnership (AddressInput) returns (google.protobuf.Empty) {
+  }
+
+  rpc IsInitialized(google.protobuf.Empty) returns (google.protobuf.BoolValue) {
+    option (aelf.is_view) = true;
+  }
+
+  rpc Owner (google.protobuf.Empty) returns (google.protobuf.StringValue) {
+    option (aelf.is_view) = true;
+  }
+
+  rpc ReceiverWallet(google.protobuf.Empty) returns (google.protobuf.StringValue) {
+    option (aelf.is_view) = true;
+  }
+
+  rpc AvailableItems (AvailableItemsInput) returns (google.protobuf.BoolValue) {
+    option (aelf.is_view) = true;
+  }
+
+  rpc GetItemsPrice(GetItemsPriceInput) returns (ItemsPriceOutput) {
+    option (aelf.is_view) = true;
+  }
+}
+
+message PurchaseItemsInput {
+  string user_id = 1;
+  string items_id = 2;
+}
+
+message PurchaseItemsEvent {
+  option (aelf.is_event) = true;
+  string user_id = 1;
+  string items_id = 2;
+}
+
+message AddItemsInput {
+  string items_id = 1;
+  bool is_available = 2;
+  bool can_buy = 3;
+  int64 items_price = 4;
+}
+
+message AvailableItemsInput {
+  string items_id = 1;
+}
+
+message RemoveItemsInput {
+  string items_id = 1;
+}
+
+message GetItemsPriceInput {
+  repeated string items_ids = 1;
+}
+
+message ItemsOutput {
+  string items_id = 1 [(aelf.is_indexed) = true];
+  bool is_available = 2 [(aelf.is_indexed) = true];
+  bool can_buy = 3 [(aelf.is_indexed) = true];
+  int64 items_price = 4 [(aelf.is_indexed) = true];
+}
+
+message ItemsDAO {
+  string items_id = 1;     
+  bool is_available = 2;    
+  bool can_buy = 3;        
+  int64 items_price = 4;      
+}
+
+message ItemsPriceOutput {
+  repeated ItemsDAO items_output = 1;
+}
+
+message AddressInput {
+  aelf.Address address = 1;
+}
