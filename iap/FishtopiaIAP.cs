@@ -8,12 +8,9 @@ namespace AElf.Contracts.FishtopiaIAP
     // Contract class must inherit the base class generated from the proto file
     public class FishtopiaIAP : FishtopiaIAPContainer.FishtopiaIAPBase
     {
-        private const string NativeTokenContractAddress = "ASh2Wt7nSEmYqnGxPPzp4pnVDU4uhj1XW9Se5VeZcX2UDdyjx";
         private const string ReceiverAddress = "TiDZhLij1qPtR95AZbQMVtydx436DigRea4w1Vs914StaQUTJ";
 
         private const string _symbol = "ELF";
-
-        private const string _version = "1.0";
 
         public override Empty Initialize(Empty input)
         {
@@ -22,15 +19,17 @@ namespace AElf.Contracts.FishtopiaIAP
             State.Initialized.Value = true;
             State.Owner.Value = Context.Sender;
             State.ReceiverWalletAddress.Value = Address.FromBase58(ReceiverAddress);
-            State.TokenContract.Value = Address.FromBase58(NativeTokenContractAddress);
+            State.TokenContract.Value = Context.GetContractAddressByName(SmartContractConstants.TokenContractSystemName);
 
             return new Empty();
         }
 
         public override BoolValue IsInitialized(Empty input)
         {
-            if (State.Initialized.Value == true) return new BoolValue { Value = true };
-            return new BoolValue { Value = false };
+            return new BoolValue
+            {
+                Value = State.Initialized.Value
+            };
         }
 
         public override Empty SetReceiverWallet(AddressInput input)
@@ -55,6 +54,14 @@ namespace AElf.Contracts.FishtopiaIAP
 
             State.ItemsList[input.ItemsId] = items;
 
+            Context.Fire(new AddedItemsEvent
+            {
+                ItemsId = input.ItemsId,
+                IsAvailable = input.IsAvailable,
+                CanBuy = input.CanBuy,
+                ItemsPrice = input.ItemsPrice,
+            });
+
             return new Empty();
         }
 
@@ -63,10 +70,16 @@ namespace AElf.Contracts.FishtopiaIAP
             AssertIsOwner();
             Assert(State.ItemsList[input.ItemsId] != null, "Items Not Found");
             State.ItemsList.Remove(input.ItemsId);
+
+            Context.Fire(new RemovedItemsEvent
+            {
+                ItemsId = input.ItemsId,
+            });
+
             return new Empty();
         }
 
-        public override BoolValue AvailableItems(AvailableItemsInput input)
+        public override BoolValue IsItemsAvailable(IsItemsAvailableInput input)
         {
             ItemsDAO items = State.ItemsList[input.ItemsId];
             if (items == null || items.IsAvailable == false) return new BoolValue { Value = false };
@@ -87,14 +100,6 @@ namespace AElf.Contracts.FishtopiaIAP
             Assert(items != null, "Items Not Found.");
             Assert(items.IsAvailable != false, "Items Is Not Available.");
             Assert(items.CanBuy != false, "Items Can Not Buy Now. Please try again.");
-
-            long spenderBalance = State.TokenContract.GetBalance.Call(new GetBalanceInput
-            {
-                Symbol = _symbol,
-                Owner = Context.Sender
-            }).Balance;
-
-            Assert(spenderBalance >= items.ItemsPrice, "Not Enough Token.");
 
             State.TokenContract.TransferFrom.Send(new TransferFromInput
             {
